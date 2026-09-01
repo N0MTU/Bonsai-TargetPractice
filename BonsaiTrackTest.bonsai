@@ -1,0 +1,535 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<WorkflowBuilder Version="2.9.1"
+                 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xmlns:cv="clr-namespace:Bonsai.Vision;assembly=Bonsai.Vision"
+                 xmlns:rx="clr-namespace:Bonsai.Reactive;assembly=Bonsai.Core"
+                 xmlns:drw="clr-namespace:Bonsai.Vision.Drawing;assembly=Bonsai.Vision"
+                 xmlns:p1="clr-namespace:OpenCV.Net;assembly=OpenCV.Net"
+                 xmlns:scr="clr-namespace:Bonsai.Scripting.Expressions;assembly=Bonsai.Scripting.Expressions"
+                 xmlns:io="clr-namespace:Bonsai.IO;assembly=Bonsai.System"
+                 xmlns:num="clr-namespace:Bonsai.Numerics;assembly=Bonsai.Numerics"
+                 xmlns:p2="clr-namespace:Bonsai.Numerics.Distributions;assembly=Bonsai.Numerics"
+                 xmlns="https://bonsai-rx.org/2018/workflow">
+  <Workflow>
+    <Nodes>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="cv:CameraCapture">
+          <cv:Index>0</cv:Index>
+          <cv:CaptureProperties />
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="cv:Flip">
+          <cv:Mode>Horizontal</cv:Mode>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="GroupWorkflow">
+        <Name>Colour Tracker</Name>
+        <Description>This tracks the position of a pink coloured object. Ideal for a pink stickynote. emits NaN on no detection.</Description>
+        <Workflow>
+          <Nodes>
+            <Expression xsi:type="WorkflowInput">
+              <Name>Source1</Name>
+            </Expression>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="cv:ConvertColor">
+                <cv:Conversion>Bgr2Hsv</cv:Conversion>
+              </Combinator>
+            </Expression>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="cv:HsvThreshold">
+                <cv:Lower>
+                  <cv:Val0>120</cv:Val0>
+                  <cv:Val1>40</cv:Val1>
+                  <cv:Val2>50</cv:Val2>
+                  <cv:Val3>0</cv:Val3>
+                </cv:Lower>
+                <cv:Upper>
+                  <cv:Val0>170</cv:Val0>
+                  <cv:Val1>255</cv:Val1>
+                  <cv:Val2>255</cv:Val2>
+                  <cv:Val3>0</cv:Val3>
+                </cv:Upper>
+              </Combinator>
+            </Expression>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="cv:MorphologicalOperator">
+                <cv:Size>
+                  <cv:Width>3</cv:Width>
+                  <cv:Height>3</cv:Height>
+                </cv:Size>
+                <cv:Anchor>
+                  <cv:X>-1</cv:X>
+                  <cv:Y>-1</cv:Y>
+                </cv:Anchor>
+                <cv:Shape>Rectangle</cv:Shape>
+                <cv:Iterations>1</cv:Iterations>
+                <cv:Operation>Erode</cv:Operation>
+              </Combinator>
+            </Expression>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="cv:FindContours">
+                <cv:Mode>External</cv:Mode>
+                <cv:Method>ChainApproxNone</cv:Method>
+                <cv:Offset>
+                  <cv:X>0</cv:X>
+                  <cv:Y>0</cv:Y>
+                </cv:Offset>
+                <cv:MinArea>150</cv:MinArea>
+                <cv:MaxArea xsi:nil="true" />
+              </Combinator>
+            </Expression>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="cv:BinaryRegionAnalysis" />
+            </Expression>
+            <Expression xsi:type="Combinator">
+              <Combinator xsi:type="cv:LargestBinaryRegion" />
+            </Expression>
+            <Expression xsi:type="WorkflowOutput" />
+          </Nodes>
+          <Edges>
+            <Edge From="0" To="1" Label="Source1" />
+            <Edge From="1" To="2" Label="Source1" />
+            <Edge From="2" To="3" Label="Source1" />
+            <Edge From="3" To="4" Label="Source1" />
+            <Edge From="4" To="5" Label="Source1" />
+            <Edge From="5" To="6" Label="Source1" />
+            <Edge From="6" To="7" Label="Source1" />
+          </Edges>
+        </Workflow>
+      </Expression>
+      <Expression xsi:type="rx:Condition">
+        <Description />
+        <Workflow>
+          <Nodes>
+            <Expression xsi:type="WorkflowInput">
+              <Name>Source1</Name>
+            </Expression>
+            <Expression xsi:type="MemberSelector">
+              <Selector>Area</Selector>
+            </Expression>
+            <Expression xsi:type="GreaterThan">
+              <Operand xsi:type="DoubleProperty">
+                <Value>0</Value>
+              </Operand>
+            </Expression>
+            <Expression xsi:type="WorkflowOutput" />
+          </Nodes>
+          <Edges>
+            <Edge From="0" To="1" Label="Source1" />
+            <Edge From="1" To="2" Label="Source1" />
+            <Edge From="2" To="3" Label="Source1" />
+          </Edges>
+        </Workflow>
+      </Expression>
+      <Expression xsi:type="MemberSelector">
+        <Selector>Centroid</Selector>
+      </Expression>
+      <Expression xsi:type="PropertyMapping">
+        <PropertyMappings>
+          <Property Name="Center" />
+        </PropertyMappings>
+      </Expression>
+      <Expression xsi:type="SubscribeSubject">
+        <Name>TargetPos2</Name>
+      </Expression>
+      <Expression xsi:type="PropertyMapping">
+        <PropertyMappings>
+          <Property Name="Center" />
+        </PropertyMappings>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="drw:CreateCanvas">
+          <drw:Size>
+            <drw:Width>640</drw:Width>
+            <drw:Height>480</drw:Height>
+          </drw:Size>
+          <drw:Depth>U8</drw:Depth>
+          <drw:Channels>3</drw:Channels>
+          <drw:Color>
+            <drw:Val0>0</drw:Val0>
+            <drw:Val1>0</drw:Val1>
+            <drw:Val2>0</drw:Val2>
+            <drw:Val3>0</drw:Val3>
+          </drw:Color>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="PropertyMapping">
+        <PropertyMappings>
+          <Property Name="Image" />
+        </PropertyMappings>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="drw:AddImage">
+          <drw:Destination>
+            <drw:X>0</drw:X>
+            <drw:Y>0</drw:Y>
+            <drw:Width>0</drw:Width>
+            <drw:Height>0</drw:Height>
+          </drw:Destination>
+          <drw:Interpolation>Linear</drw:Interpolation>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="SubscribeSubject">
+        <Name>TargetPos2</Name>
+      </Expression>
+      <Expression xsi:type="PropertyMapping">
+        <PropertyMappings>
+          <Property Name="Value" />
+        </PropertyMappings>
+      </Expression>
+      <Expression xsi:type="Subtract">
+        <Operand xsi:type="WorkflowProperty" TypeArguments="p1:Point2f">
+          <Value>
+            <X>452</X>
+            <Y>316</Y>
+          </Value>
+        </Operand>
+      </Expression>
+      <Expression xsi:type="scr:ExpressionTransform">
+        <scr:Name>Target HitScan</scr:Name>
+        <scr:Expression>Math.Sqrt(X*X + Y*Y)</scr:Expression>
+      </Expression>
+      <Expression xsi:type="LessThan">
+        <Operand xsi:type="DoubleProperty">
+          <Value>40</Value>
+        </Operand>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="rx:DistinctUntilChanged" />
+      </Expression>
+      <Expression xsi:type="rx:Condition">
+        <Workflow>
+          <Nodes>
+            <Expression xsi:type="WorkflowInput">
+              <Name>Source1</Name>
+            </Expression>
+            <Expression xsi:type="WorkflowOutput" />
+          </Nodes>
+          <Edges>
+            <Edge From="0" To="1" Label="Source1" />
+          </Edges>
+        </Workflow>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="rx:Throttle">
+          <rx:DueTime>PT0.15S</rx:DueTime>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="rx:Take">
+          <rx:Count>10</rx:Count>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="scr:ExpressionTransform">
+        <scr:Name>True Scoring</scr:Name>
+        <scr:Expression>1
+</scr:Expression>
+      </Expression>
+      <Expression xsi:type="rx:Accumulate" />
+      <Expression xsi:type="Format">
+        <Format />
+        <Selector />
+      </Expression>
+      <Expression xsi:type="PropertyMapping">
+        <PropertyMappings>
+          <Property Name="Text" />
+        </PropertyMappings>
+      </Expression>
+      <Expression xsi:type="rx:Condition">
+        <Name>Game Over</Name>
+        <Workflow>
+          <Nodes>
+            <Expression xsi:type="WorkflowInput">
+              <Name>Source1</Name>
+            </Expression>
+            <Expression xsi:type="scr:ExpressionTransform">
+              <scr:Expression>it == 10</scr:Expression>
+            </Expression>
+            <Expression xsi:type="WorkflowOutput" />
+          </Nodes>
+          <Edges>
+            <Edge From="0" To="1" Label="Source1" />
+            <Edge From="1" To="2" Label="Source1" />
+          </Edges>
+        </Workflow>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="cv:CreatePoint2f">
+          <cv:X>1000</cv:X>
+          <cv:Y>1000</cv:Y>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="PropertyMapping">
+        <PropertyMappings>
+          <Property Name="Origin" />
+        </PropertyMappings>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="drw:AddText">
+          <drw:Text>10</drw:Text>
+          <drw:Alignment>Near</drw:Alignment>
+          <drw:LineAlignment>Near</drw:LineAlignment>
+          <drw:TextRenderingHint>AntiAliasGridFit</drw:TextRenderingHint>
+          <drw:Color>
+            <drw:Val0>255</drw:Val0>
+            <drw:Val1>255</drw:Val1>
+            <drw:Val2>255</drw:Val2>
+            <drw:Val3>255</drw:Val3>
+          </drw:Color>
+          <drw:Font>Modern No. 20, 23.9999962pt, style=Bold</drw:Font>
+          <drw:Origin>
+            <drw:X>1000</drw:X>
+            <drw:Y>1000</drw:Y>
+          </drw:Origin>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="rx:TimeInterval" />
+      </Expression>
+      <Expression xsi:type="MemberSelector">
+        <Selector>Interval.TotalMilliseconds</Selector>
+      </Expression>
+      <Expression xsi:type="rx:Accumulate" />
+      <Expression xsi:type="scr:ExpressionTransform">
+        <scr:Name>Score (time)</scr:Name>
+        <scr:Expression>it/10</scr:Expression>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="rx:WithLatestFrom" />
+      </Expression>
+      <Expression xsi:type="MemberSelector">
+        <Selector>Item2</Selector>
+      </Expression>
+      <Expression xsi:type="Format">
+        <Format>Game Over! 
+Your average time was:
+{0:F0} ms</Format>
+        <Selector />
+      </Expression>
+      <Expression xsi:type="PropertyMapping">
+        <PropertyMappings>
+          <Property Name="Text" />
+        </PropertyMappings>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="drw:AddText">
+          <drw:Text>Game Over! 
+Your average time was:
+966 ms</drw:Text>
+          <drw:Alignment>Center</drw:Alignment>
+          <drw:LineAlignment>Center</drw:LineAlignment>
+          <drw:TextRenderingHint>SystemDefault</drw:TextRenderingHint>
+          <drw:Color>
+            <drw:Val0>255</drw:Val0>
+            <drw:Val1>255</drw:Val1>
+            <drw:Val2>255</drw:Val2>
+            <drw:Val3>255</drw:Val3>
+          </drw:Color>
+          <drw:Font>Papyrus, 21.75pt, style=Bold, Italic</drw:Font>
+          <drw:Origin>
+            <drw:X>300</drw:X>
+            <drw:Y>200</drw:Y>
+          </drw:Origin>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="IntProperty">
+          <Value>0</Value>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="PropertyMapping">
+        <PropertyMappings>
+          <Property Name="Radius" />
+        </PropertyMappings>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="drw:Circle">
+          <drw:Center>
+            <drw:X>452</drw:X>
+            <drw:Y>316</drw:Y>
+          </drw:Center>
+          <drw:Radius>0</drw:Radius>
+          <drw:Color>
+            <drw:Val0>100</drw:Val0>
+            <drw:Val1>169</drw:Val1>
+            <drw:Val2>200</drw:Val2>
+            <drw:Val3>100</drw:Val3>
+          </drw:Color>
+          <drw:Thickness>3</drw:Thickness>
+          <drw:LineType>Connected8</drw:LineType>
+          <drw:Shift>0</drw:Shift>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="drw:Circle">
+          <drw:Center>
+            <drw:X>412</drw:X>
+            <drw:Y>262</drw:Y>
+          </drw:Center>
+          <drw:Radius>20</drw:Radius>
+          <drw:Color>
+            <drw:Val0>169</drw:Val0>
+            <drw:Val1>200</drw:Val1>
+            <drw:Val2>100</drw:Val2>
+            <drw:Val3>100</drw:Val3>
+          </drw:Color>
+          <drw:Thickness>-1</drw:Thickness>
+          <drw:LineType>Connected8</drw:LineType>
+          <drw:Shift>0</drw:Shift>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="drw:DrawCanvas" />
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="rx:WithLatestFrom" />
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="rx:Timestamp" />
+      </Expression>
+      <Expression xsi:type="io:CsvWriter">
+        <io:FileName>HandPos</io:FileName>
+        <io:Append>true</io:Append>
+        <io:Overwrite>false</io:Overwrite>
+        <io:Suffix>None</io:Suffix>
+        <io:IncludeHeader>true</io:IncludeHeader>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="rx:Timestamp" />
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="num:CreateRandom">
+          <num:Seed xsi:nil="true" />
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="p2:CreateDiscreteUniform">
+          <p2:Lower>50</p2:Lower>
+          <p2:Upper>600</p2:Upper>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="p2:Sample" />
+      </Expression>
+      <Expression xsi:type="PropertyMapping">
+        <PropertyMappings>
+          <Property Name="X" />
+        </PropertyMappings>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="p2:CreateDiscreteUniform">
+          <p2:Lower>20</p2:Lower>
+          <p2:Upper>400</p2:Upper>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="p2:Sample" />
+      </Expression>
+      <Expression xsi:type="PropertyMapping">
+        <PropertyMappings>
+          <Property Name="Y" />
+        </PropertyMappings>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="cv:CreatePoint2f">
+          <cv:X>304</cv:X>
+          <cv:Y>144</cv:Y>
+        </Combinator>
+      </Expression>
+      <Expression xsi:type="MulticastSubject">
+        <Name>TargetPos2</Name>
+      </Expression>
+      <Expression xsi:type="Combinator">
+        <Combinator xsi:type="rx:WithLatestFrom" />
+      </Expression>
+      <Expression xsi:type="io:CsvWriter">
+        <io:FileName>HitList</io:FileName>
+        <io:Append>true</io:Append>
+        <io:Overwrite>false</io:Overwrite>
+        <io:Suffix>None</io:Suffix>
+        <io:IncludeHeader>true</io:IncludeHeader>
+      </Expression>
+      <Expression xsi:type="io:CsvWriter">
+        <io:FileName>FinalScore</io:FileName>
+        <io:Append>true</io:Append>
+        <io:Overwrite>false</io:Overwrite>
+        <io:Suffix>None</io:Suffix>
+        <io:IncludeHeader>false</io:IncludeHeader>
+      </Expression>
+      <Expression xsi:type="rx:BehaviorSubject" TypeArguments="p1:Point2f">
+        <rx:Name>TargetPos2</rx:Name>
+      </Expression>
+    </Nodes>
+    <Edges>
+      <Edge From="0" To="1" Label="Source1" />
+      <Edge From="1" To="2" Label="Source1" />
+      <Edge From="1" To="8" Label="Source1" />
+      <Edge From="1" To="9" Label="Source1" />
+      <Edge From="2" To="3" Label="Source1" />
+      <Edge From="3" To="4" Label="Source1" />
+      <Edge From="4" To="5" Label="Source1" />
+      <Edge From="4" To="13" Label="Source1" />
+      <Edge From="4" To="42" Label="Source1" />
+      <Edge From="5" To="40" Label="Source1" />
+      <Edge From="6" To="7" Label="Source1" />
+      <Edge From="7" To="39" Label="Source1" />
+      <Edge From="8" To="10" Label="Source1" />
+      <Edge From="9" To="10" Label="Source2" />
+      <Edge From="10" To="27" Label="Source1" />
+      <Edge From="11" To="12" Label="Source1" />
+      <Edge From="12" To="13" Label="Source2" />
+      <Edge From="13" To="14" Label="Source1" />
+      <Edge From="14" To="15" Label="Source1" />
+      <Edge From="15" To="16" Label="Source1" />
+      <Edge From="16" To="17" Label="Source1" />
+      <Edge From="17" To="18" Label="Source1" />
+      <Edge From="18" To="19" Label="Source1" />
+      <Edge From="19" To="20" Label="Source1" />
+      <Edge From="19" To="28" Label="Source1" />
+      <Edge From="19" To="45" Label="Source1" />
+      <Edge From="19" To="46" Label="Source1" />
+      <Edge From="19" To="53" Label="Source3" />
+      <Edge From="20" To="21" Label="Source1" />
+      <Edge From="21" To="22" Label="Source1" />
+      <Edge From="21" To="24" Label="Source1" />
+      <Edge From="21" To="42" Label="Source2" />
+      <Edge From="22" To="23" Label="Source1" />
+      <Edge From="23" To="27" Label="Source2" />
+      <Edge From="24" To="25" Label="Source1" />
+      <Edge From="24" To="32" Label="Source1" />
+      <Edge From="24" To="37" Label="Source1" />
+      <Edge From="25" To="26" Label="Source1" />
+      <Edge From="26" To="27" Label="Source3" />
+      <Edge From="27" To="36" Label="Source1" />
+      <Edge From="28" To="29" Label="Source1" />
+      <Edge From="29" To="30" Label="Source1" />
+      <Edge From="30" To="31" Label="Source1" />
+      <Edge From="31" To="32" Label="Source2" />
+      <Edge From="32" To="33" Label="Source1" />
+      <Edge From="33" To="34" Label="Source1" />
+      <Edge From="34" To="35" Label="Source1" />
+      <Edge From="34" To="57" Label="Source1" />
+      <Edge From="35" To="36" Label="Source2" />
+      <Edge From="36" To="39" Label="Source2" />
+      <Edge From="37" To="38" Label="Source1" />
+      <Edge From="38" To="39" Label="Source3" />
+      <Edge From="39" To="40" Label="Source2" />
+      <Edge From="40" To="41" Label="Source1" />
+      <Edge From="42" To="43" Label="Source1" />
+      <Edge From="43" To="44" Label="Source1" />
+      <Edge From="45" To="55" Label="Source1" />
+      <Edge From="46" To="47" Label="Source1" />
+      <Edge From="46" To="50" Label="Source1" />
+      <Edge From="47" To="48" Label="Source1" />
+      <Edge From="48" To="49" Label="Source1" />
+      <Edge From="49" To="53" Label="Source1" />
+      <Edge From="50" To="51" Label="Source1" />
+      <Edge From="51" To="52" Label="Source1" />
+      <Edge From="52" To="53" Label="Source2" />
+      <Edge From="53" To="54" Label="Source1" />
+      <Edge From="54" To="55" Label="Source2" />
+      <Edge From="55" To="56" Label="Source1" />
+    </Edges>
+  </Workflow>
+</WorkflowBuilder>
